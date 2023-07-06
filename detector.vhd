@@ -7,10 +7,10 @@ use work.estados_asincronico.all;
 
 entity detector is
     generic(BITS_CONTADOR: natural := 4; 
-            DELAY_CICLOS: natural := 4; 
-            T_CLK: time := 100 ms);
+            DELAY_CICLOS: natural := 4);
     port (s1: in std_logic;
           s2: in std_logic;
+          clk_cont: in std_logic;
           alarma: out std_logic
           );
 end detector;
@@ -19,9 +19,6 @@ architecture detector_beh of detector is
     --Entradas y salidas del contador (sincrónico)
     signal count: std_logic_vector(BITS_CONTADOR-1 downto 0);
     signal rst_cont: std_logic;
-    --Clk de todos los flip flops (del contador y delay, T_CLK 
-    --de periodo)
-    signal clk_ff: std_logic;
     --Salida del comparador (entrada es "count")
     signal comp_out: std_logic;
     --Salida del asincrónico
@@ -37,7 +34,7 @@ begin
         generic map(N => BITS_CONTADOR)
         port map(
             ena => asinc_out,
-            clk => clk_ff,
+            clk => clk_cont,
             rst => rst_cont,
             count => count
         );
@@ -49,10 +46,7 @@ begin
             qo => asinc_out
         );
 
-    --Asignación clk de los flip flops (1/T_CLK)
-    clk_ff <= not clk_ff after T_CLK/2;
-
-    P_DETECTOR: process(clk_ff, s1, s2)
+    P_DETECTOR: process(clk_cont, s1, s2)
         begin
             --Reset contador
             rst_cont <= not asinc_out;
@@ -70,7 +64,7 @@ begin
             --DELAY
             --Manejo del delay en la alarma (se mantiene 
             --durante DELAY_CICLOS)
-            if rising_edge(clk_ff) then
+            if rising_edge(clk_cont) then
                 delay_count(DELAY_CICLOS-1 downto 1) 
                 <= delay_count(DELAY_CICLOS-2 downto 0);
                 delay_count(0) <= delay_in;
