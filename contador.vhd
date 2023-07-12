@@ -14,6 +14,7 @@ end counter;
 
 architecture counter_beh of counter is
     signal aux: unsigned(N-1 downto 0);
+    signal max: integer := 15;
 begin
     process(clk, rst)
     begin
@@ -22,7 +23,7 @@ begin
         end if;
         if rising_edge(clk) then
             --Si está habilitado
-            if ena = '1' then
+            if ena = '1' and to_integer(unsigned(aux)) /= max then
                 --Sumar
                 aux <= aux + 1;
             end if;

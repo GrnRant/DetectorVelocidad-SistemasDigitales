@@ -18,19 +18,21 @@ begin
     P_ASINC: process(s1, s2)
     begin
         if (s1 = '0' and s2 = '0') then
-            current_state <= E1;
             qo <= '0';
-        elsif (s1 = '0' and s2 = '1') then
-            current_state <= E3;
-        elsif (s1 = '1' and s2 = '1') then
-            current_state <= E4;
+            current_state <= E1;
         elsif (s1 = '1' and s2 = '0') then
             if current_state = E1 then
                 qo <= '1';
             else
                 qo <= '0';
-            end if;        
-            current_state <= E2;   
+            end if;  
+            current_state <= E2;  
+        elsif (s1 = '0' and s2 = '1') then
+            qo <= '0';
+            current_state <= E3;
+        elsif (s1 = '1' and s2 = '1') then
+            qo <= '0';
+            current_state <= E4; 
         end if;
     end process P_ASINC;
 end asinc_beh;

@@ -19,6 +19,7 @@ architecture detector_beh of detector is
     --Entradas y salidas del contador (sincrónico)
     signal count: std_logic_vector(BITS_CONTADOR-1 downto 0);
     signal rst_cont: std_logic;
+    signal delay_rst: std_logic;
     --Salida del comparador (entrada es "count")
     signal comp_out: std_logic;
     --Salida del asincrónico
@@ -27,7 +28,8 @@ architecture detector_beh of detector is
     signal delay_in: std_logic;
     --Señal auxiliar para manejar tiempo de matenido 
     --(cuatro ciclos de clks)
-    signal delay_count: std_logic_vector(DELAY_CICLOS-1 downto 0);
+    signal delay_reg: std_logic_vector(DELAY_CICLOS-1 downto 0) := (others => '0');
+    constant cero: std_logic_vector(DELAY_CICLOS-1 downto 0) := (others => '0'); 
 begin
     --Sincrónico (contador 4 bits)
     COUNTER_INST : entity work.counter(counter_beh)
@@ -48,33 +50,41 @@ begin
 
     P_DETECTOR: process(clk_cont, s1, s2)
         begin
-            --Reset contador
-            rst_cont <= not asinc_out;
-
             --COMPARADOR
             --Salida del comparador es el bit más significativo
-            -- del contador 
-            comp_out <= count(BITS_CONTADOR-1);
-            if (comp_out = '1' and asinc_out = '0') then
+            -- del contador
+            if rst_cont = '0' then
+                comp_out <= count(BITS_CONTADOR-1);
+            else
+                comp_out <= '1';
+            end if;
+            if (comp_out = '0' and s1 = '1' and s2 = '1') then
                 delay_in <= '1';
             else
                 delay_in <= '0';
             end if;
             
-            --DELAY
-            --Manejo del delay en la alarma (se mantiene 
-            --durante DELAY_CICLOS)
+            
             if rising_edge(clk_cont) then
-                delay_count(DELAY_CICLOS-1 downto 1) 
-                <= delay_count(DELAY_CICLOS-2 downto 0);
-                delay_count(0) <= delay_in;
-            end if;
-            --Salida del delay
-            for i in 0 to (DELAY_CICLOS-1) loop
-                if delay_count(i) = '1' then
-                    alarma <= '1';
+                --RESET CONTADOR
+                --Tiene delay de un ciclo
+                if delay_rst = '1' then
+                    rst_cont <= not asinc_out;
+                    delay_rst <= '0';
                 end if;
-            end loop;
+                delay_rst <= '1';
+
+                --DELAY ALARMA
+                --Manejo del delay en la alarma (se mantiene 
+                --durante DELAY_CICLOS)
+                delay_reg(DELAY_CICLOS-1 downto 1) 
+                <= delay_reg(DELAY_CICLOS-2 downto 0);
+                delay_reg(0) <= delay_in;
+            end if;
 
     end process P_DETECTOR;
+
+    --Salida del delay
+    alarma <= '1' when delay_reg /= cero else '0';
+    
 end detector_beh;
